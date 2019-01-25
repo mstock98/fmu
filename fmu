@@ -1,0 +1,627 @@
+-- UI Functions --
+
+-- cPrint
+-- Prints out text at specified x-y coords, will clear line if overwrite is non-nil
+-- Params: x - x coordinate to print text
+--         y - y coordinate ""
+--		   text - message to display
+--		   overwrite - clears line before printing if not nil
+-- Returns:
+function cPrint(x, y, text, overwrite)
+  term.setCursorPos(x, y)
+  if overwrite ~= nil then
+    term.clearLine()
+  end
+  print(text)
+end
+
+-- dispMainMenu
+-- Displays the main menu message
+-- Params:
+-- Returns:
+function dispMainMenu()
+  term.clear()
+  cPrint(1, 1, "-------------------------", 1)
+  cPrint(1, 2, "Ferroh's Mining Utilities", 1)
+  cPrint(1, 3, "-------------------------", 1)
+  cPrint(1, 5, "Type 'help' for a list of commands", 1)
+  cPrint(1, 7, "Current fuel level: " .. turtle.getFuelLevel() )
+  cPrint(1, 9, "~", 1)
+  term.setCursorPos(3,9)
+end
+
+-- dispHelp
+-- Displays list of program commands
+-- Params:
+-- Returns:
+function dispHelp()
+  term.clear()
+  cPrint(1, 1, "List of commands:")
+  cPrint(1, 2, "autoMine, exit, expand, help, mineRoom,")
+  cPrint(1, 3, "mineshaft, mineTree, mineVein")
+  cPrint(1, 12, "Press any key to continue")
+  os.pullEvent("key")
+end
+-- End UI functions --
+
+-- Misc functions
+
+-- sMoveSingle
+-- Helper function for sMove, moves the turtle once while making sure movement is successful
+-- Params: direction - direction that the turtle should movement
+--                     ("forward", "back", "up", "down", "left", "right")
+-- Returns: true on success, false on failure
+function sMoveSingle(direction)
+  if turtle.getFuelLevel() == 0 then -- If turtle is out of fuel
+    for slotNum = 1, 9 do -- Refuel
+      data = turtle.getItemDetail(slotNum)
+	  if data ~= nil and (data.name == "minecraft:coal" or data.name == "Railcraft:fuel.coke") then
+		turtle.select(slotNum)
+		turtle.refuel()
+		turtle.select(1)
+		break
+	  end
+	end
+	if turtle.getFuelLevel() == 0 then -- If unsucessful
+	  return false
+	end
+  end
+  
+  if direction == "forward" then
+    while not turtle.forward() do
+      turtle.dig()
+      turtle.attack()
+    end
+	return true
+  elseif direction == "back" then
+    while not turtle.back() do
+      turtle.turnLeft()
+      turtle.turnLeft()
+      turtle.dig()
+      turtle.attack()
+      turtle.turnLeft()
+      turtle.turnLeft()
+    end
+	return true
+  elseif direction == "up" then
+    while not turtle.up() do
+      turtle.digUp()
+      turtle.attackUp()
+    end
+	return true
+  elseif direction == "down" then
+    while not turtle.down() do
+      turtle.digDown()
+      turtle.attackDown()
+    end
+	return true
+  elseif direction == "left" then
+    turtle.turnLeft()
+    while not turtle.forward() do
+      turtle.dig()
+      turtle.attack()
+    end
+    turtle.turnRight()
+	return true
+  elseif direction == "right" then
+    turtle.turnRight()
+    while not turtle.forward() do
+      turtle.dig()
+      turtle.attack()
+    end
+    turtle.turnLeft()
+	return true
+  else
+	return false
+  end 
+end
+
+-- sMove
+-- Makes the turtle do anything in its power to complete a movement.
+-- Also has support for repeated movements and strafing left and right
+-- Params: direction - direction that the turtle should movement
+--                     ("forward", "back", "up", "down", "left", "right")
+--         times - number of blocks to move in given direction
+--                 when nil the function will move the turtle one time
+--                 if 0 then the turtle will turn in that direction
+-- Returns:
+function sMove(direction, times)
+  if times == nil then
+    times = 1
+  end
+  
+  if times == 0 then
+	if direction == "left" then
+      turtle.turnLeft()
+	elseif direction == "right" then
+	  turtle.turnRight()
+	elseif direction == "back" then
+	  turtle.turnLeft()
+	  turtle.turnLeft()
+	end
+  else
+    for index = 1, times do
+      sMoveSingle(direction)
+    end
+  end
+end
+
+-- sPlace
+-- Turtle will try everything in its power to place a block in the given direction
+-- Has support for left and right directions
+-- If vaild direction is given function will not return untill block is placed
+-- Params: direction - direction to place block
+--         ("forward", "right", "left", "back", "up", "down")
+-- Returns: true on success, false on failure (invalid direction)
+function sPlace(direction)
+  if direction == "forward" then
+    while not turtle.place() do
+      turtle.attack()
+      turtle.dig()
+    end
+  elseif direction == "right" then
+    turtle.turnRight()
+    while not turtle.place() do
+      turtle.attack()
+      turtle.dig()
+    end
+    turtle.turnLeft()
+  elseif direction == "left" then
+    turtle.turnLeft()
+    while not turtle.place() do
+      turtle.attack()
+      turtle.dig()
+    end
+    turtle.turnRight()
+  elseif direction == "back" then
+    turtle.turnLeft()
+    turtle.turnLeft()
+    while not turtle.place() do
+      turtle.attack()
+      turtle.dig()
+    end
+    turtle.turnLeft()
+    turtle.turnLeft()
+  elseif direction == "up" then
+    while not turtle.placeUp() do
+      turtle.attackUp()
+      turtle.digUp()
+    end
+  elseif direction == "down" then
+    while not turtle.placeDown() do
+      turtle.attackDown()
+      turtle.digDown()
+    end
+  else
+	return false
+  end
+  return true
+end
+
+-- Mining functions --
+
+-- mineshaft
+-- Mines a mineshaft of a given length with a torch placed every set distance
+-- Params:
+-- Returns:
+function mineshaft()
+  term.clear()
+  cPrint(1, 1, "Mineshaft length:")
+  term.setCursorPos(19, 1)
+  local length = read()
+  length = tonumber(length)
+  cPrint(1, 1, "Torch every: ", 1)
+  term.setCursorPos(14, 1)
+  local torchDist = read()
+  torchDist = tonumber(torchDist) 
+  term.clear()
+  
+  cPrint(1,1, "Distance left to mine:")
+  while length > 0 do
+    turtle.dig()
+    turtle.digUp()
+    if length % torchDist == 0 then
+      sMove("back")
+      turtle.placeUp()
+      sMove("forward")
+    end
+    sMove("forward")
+    length = length - 1
+    term.setCursorPos(24, 1)
+    print(leftToMine)
+  end
+end
+
+-- expand
+-- Bores a 7 long 3x3 tunnel and starts two mineshafts at the end of the tunnel
+-- Params:
+-- Returns:
+function expand()
+  term.clear()
+  cPrint(1, 1, "Expand: How many new segments?")
+  cPrint(1, 3, "~")
+  term.setCursorPos(3,3)
+  numSegments = read()
+  term.clear()
+  cPrint(1, 1, "Expanding main shaft by " .. numSegments .. " segments.")
+  cPrint(1, 3, "0/" .. numSegments .. " complete")
+  for index1 = 1, numSegments do
+	for index2 = 1, 7 do
+	  turtle.dig()
+      sMove("up")
+      turtle.dig()
+      sMove("up")
+      turtle.dig()
+      sMove("right")
+      turtle.dig()
+      sMove("down")
+      turtle.dig()
+      sMove("down")
+      turtle.dig()
+      sMove("right")
+      turtle.dig()
+      sMove("up")
+      turtle.dig()
+      sMove("up")
+      turtle.dig()
+      sMove("down", 2)
+      turtle.turnLeft()
+      sMove("forward", 2)
+      turtle.turnRight()
+      sMove("forward")
+    end
+    turtle.turnLeft()
+    turtle.dig()
+    sMove("up")
+    turtle.dig()
+    sMove("up")
+    turtle.dig()
+    turtle.place()
+    sMove("down", 2)
+    turtle.turnRight()
+    turtle.turnRight()
+    sMove("forward", 2)
+    turtle.dig()
+    sMove("up")
+    turtle.dig()
+    sMove("up")
+    turtle.dig()
+    turtle.place()
+    sMove("down", 2)
+    turtle.turnRight()
+    turtle.turnRight()
+    sMove("forward", 2)
+    turtle.turnRight()
+	cPrint(1, 3, index1)
+  end
+end
+
+-- testForBlock
+-- Checks to see if nearby block is a certain kind of block given by id and meta params
+-- Params: id - name if the block to look for
+--         meta - metadata of the block to look for
+--         direction - if 4 the turtle will check the block above it, if 5 the turtle will check the
+--                     block below it
+-- Returns: true if block matches name and metadata, false if it doesn't
+function testForBlock(id, meta, direction)
+  local success, data = 0
+  if direction == 4 then
+    success, data = turtle.inspectUp()
+  elseif direction == 5 then
+    success, data = turtle.inspectDown()
+  else
+    success, data = turtle.inspect()
+  end
+  
+  return data.name == id and data.metadata == meta
+end
+
+-- isOre
+-- Determines if a block is an ore block or block
+-- of interest by checking the name and metadata
+-- of a block against a blacklist
+-- Params: name - name of block
+--         metadata - metadata of block
+--         direction - leave nil for simple string
+--         cross-checking. If given actual direction
+--         it will get the name and metadata of a
+--         block throuh inspect function
+--         ("0" - forward, "1" - right, "2" - back, "3" - left, "4" - up, "5" - down)
+-- Returns: true if block is ore, false if not                   
+function isOre(name, metadata, direction)
+  if direction ~= nil then
+    if direction == 4 then
+      success, data = turtle.inspectUp()  
+    elseif direction == 5 then
+      success, data = turtle.inspectDown()
+    else
+      success, data = turtle.inspect()
+    end
+    name = data.name
+    metadata = data.metadata
+  end
+  
+  if name == "minecraft:dirt" then
+    return false
+  elseif name == "minecraft:stone" then
+    return false
+  elseif name == "minecraft:gravel" then
+    return false
+  elseif name == "minecraft:flowing_water" then
+    return false
+  elseif name == "minecraft:flowing_lava" then
+    return false
+  elseif name == "chisel:diorite" then
+    return false
+  elseif name == "chisel:granite" then
+    return false
+  elseif name == "chisel:andesite" then
+    return false
+  elseif name == "chisel:marble" then
+    return false
+  elseif name == "chisel:limestone" then
+    return false
+  elseif name == "minecraft:cobblestone" then
+    return false
+  elseif name == "minecraft:water" then
+    return false
+  elseif name == "minecraft:lava" then
+    return false
+  elseif name == "BiomesOPlenty:ash" then
+    return false
+  elseif name == "minecraft:netherrack" then
+    return false
+  elseif name == "minecraft:obsidian" then
+	return false
+  elseif name == "chisel:basalt2" then
+    return false
+  elseif name == nil then
+    return false
+  else
+    return true
+  end    
+end
+
+-- mineVein
+-- Mines all the blocks of a given id and metadata that are connected to each other
+-- Params: id - name of the block
+--         meta - metadata of the block
+--         lastDir - 
+-- Returns:
+function mineVein(id, meta, lastDir)
+  for currentDir = 0, 5 do
+    if id ~= nil and testForBlock(id, meta, currentDir) then -- if given a specific block to mine
+      if currentDir == 4 then
+        turtle.digUp()
+        sMove("up")
+      elseif currentDir == 5 then
+        turtle.digDown()
+        sMove("down")
+      else
+        turtle.dig()
+        sMove("forward")
+      end
+      mineVein(id, meta, currentDir)
+    elseif isOre(nil, nil, currentDir) then -- if no specific block to mine is specified and ore is detected
+      if currentDir == 4 then
+        turtle.digUp()
+        sMove("up")
+      elseif currentDir == 5 then
+        turtle.digDown()
+        sMove("down")
+      else
+        turtle.dig()
+        sMove("forward")
+      end
+      mineVein(nil, nil, currentDir)
+    end
+    if currentDir < 4 then
+      turtle.turnRight()
+    end
+  end
+  
+  if lastDir == 4 then
+    sMove("down")
+  elseif lastDir == 5 then
+    sMove("up")
+  elseif lastDir == -1 then
+  else
+	sMove("back") 
+  end
+end
+
+function mineRoom()
+  term.clear()
+  cPrint(1,1,"Room length:")
+  term.setCursorPos(14,1)
+  local length = read()
+  length = tonumber(length)
+  cPrint(1,1,"Room width:", 1)
+  term.setCursorPos(14,1)
+  local width = read()
+  width = tonumber(width)
+  cPrint(1,1,"Room height:", 1)
+  term.setCursorPos(14,1)
+  local height = read()
+  height = tonumber(height)
+  term.setCursorPos(1,1)
+  term.clearLine()
+  term.setCursorPos(1,1)
+  print("Mining out " .. width .. "x" .. length .. "x" .. height .. " room (" .. length * width * height .. " blocks)")  
+  local turnDir = "right"
+  turtle.dig()
+  sMove("forward")
+  for index1 = 1, height do
+    for index2 = 1, width do
+      for index3 = 2, length do
+        turtle.dig()
+        sMove("forward")
+      end
+      if index2 ~= width then
+        if turnDir == "right" then
+          turtle.turnRight()
+          turtle.dig()
+          sMove("forward")
+          turtle.turnRight()
+          turnDir = "left"
+        else
+          turtle.turnLeft()
+          turtle.dig()
+          sMove("forward")
+          turtle.turnLeft()
+          turnDir = "right"
+        end
+      end
+    end
+    if index1 ~= height then
+      turtle.digDown()
+      sMove("down")
+      turtle.turnLeft()
+      turtle.turnLeft()
+    end
+  end
+end
+
+function ifOre(direction)
+  local success, data
+  if direction == "up" then
+    success, data = turtle.inspectUp()
+  elseif direction == "down" then
+    success, data = turtle.inspectDown()
+  else
+    success, data = turtle.inspect()
+  end  
+  
+  if isOre(data.name, data.metadata) then  
+    mineVein(nil, nil, -1)
+  end
+end
+
+function scanOres()
+  ifOre()
+  turtle.turnLeft()
+  ifOre()
+  turtle.turnRight()
+  turtle.turnRight()
+  ifOre()
+  turtle.turnLeft()
+  ifOre("down")
+  sMove("up")
+  ifOre()
+  turtle.turnLeft()
+  ifOre()
+  turtle.turnRight()
+  turtle.turnRight()
+  ifOre()
+  turtle.turnLeft()
+  ifOre("up")
+  sMove("down")
+end
+
+function slotsLeft(startSlot, endSlot)
+  for slotNum = startSlot, endSlot do
+    if turtle.getItemCount(slotNum) == 0 then
+      return true
+    end
+  end
+  return false
+end
+
+function depositItems(startSlot, endSlot)
+  for slotNum = startSlot, endSlot do
+    turtle.select(slotNum)
+    turtle.drop()
+  end
+end
+
+function autoMine()
+  term.clear()
+  cPrint(1,1,"Mineshaft length:")
+  term.setCursorPos(19,1)
+  local leftToMine = tonumber(read())
+  cPrint(1,1,"Torch every:",1)
+  term.setCursorPos(14,1)
+  local torchDist = tonumber(read())
+  
+  while leftToMine > 0 do
+    turtle.dig()
+    sMove("forward")
+    turtle.digUp()
+    scanOres()
+    if leftToMine % torchDist == 0 then
+      turtle.back()
+      turtle.select(1)
+      turtle.placeUp()
+      turtle.forward()
+    end
+    if not slotsLeft(3,16) then
+      turtle.turnRight()
+      turtle.dig()
+      sMove("up")
+      turtle.dig()
+      sMove("down")
+      turtle.select(2)
+      turtle.place()
+      depositItems(3,16)
+      turtle.turnLeft()
+    end
+    leftToMine = leftToMine - 1
+  end
+end
+
+-- mineTree
+-- Mines a 1x1xH vein of blocks (meant for trees) and returns to the ground
+-- Params:
+-- Returns:
+function mineTree()
+  term.clear()
+  cPrint(1, 1, "Cutting tree...")
+  local success, blockToMine = turtle.inspect()
+  frontBlock = blockToMine.name
+  while frontBlock == blockToMine.name do
+	turtle.dig()
+	sMove("up")
+	success, data = turtle.inspect()
+	frontBlock = data.name
+  end
+  while turtle.down() do
+  end
+end
+-- End mining functions --
+
+-- Main function --
+dispMainMenu()
+input = read()
+while (input ~= "exit") do 
+  if input == "help" then
+    dispHelp()
+    dispMainMenu()
+  elseif input == "mineshaft" then
+    mineshaft()
+    dispMainMenu()
+  elseif input == "expand" then
+    expand()
+    dispMainMenu()
+  elseif input == "mineVein" then
+    local success, data = turtle.inspect()
+    mineVein(data.name, data.metadata, -1)
+    dispMainMenu()
+  elseif input == "mineRoom" then
+    mineRoom()
+    dispMainMenu()
+  elseif input == "autoMine" then
+    autoMine()
+    dispMainMenu()
+  elseif input == "mineTree" then
+    mineTree()
+	dispMainMenu()
+  else
+    cPrint(1, 5, "Unknown command. Type 'help'.", 1)
+    cPrint(1, 7, "~ ", 1) 
+  end
+  term.setCursorPos(3,9)
+  input = read()
+end
+term.clear()
+term.setCursorPos(1,1)
+-- End main function --
