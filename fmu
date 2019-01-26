@@ -617,7 +617,7 @@ while (input ~= "exit") do
 	dispMainMenu()
   else
     cPrint(1, 5, "Unknown command. Type 'help'.", 1)
-    cPrint(1, 7, "~ ", 1) 
+    cPrint(1, 9, "~ ", 1) 
   end
   term.setCursorPos(3,9)
   input = read()
