@@ -220,7 +220,7 @@ function mineshaft()
   while length > 0 do
     turtle.dig()
     turtle.digUp()
-    if length % torchDist == 0 then
+    if (length - 1) % torchDist == 0 then
       sMove("back")
       turtle.placeUp()
       sMove("forward")
@@ -228,7 +228,7 @@ function mineshaft()
     sMove("forward")
     length = length - 1
     term.setCursorPos(24, 1)
-    print(leftToMine)
+    print(length)
   end
 end
 
@@ -548,7 +548,7 @@ function autoMine()
     sMove("forward")
     turtle.digUp()
     scanOres()
-    if leftToMine % torchDist == 0 then
+    if (leftToMine - 1) % torchDist == 0 then
       turtle.back()
       turtle.select(1)
       turtle.placeUp()
