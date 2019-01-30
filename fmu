@@ -375,6 +375,8 @@ function isOre(name, metadata, direction)
 	return false
   elseif name == "chisel:basalt2" then
     return false
+  elseif name == "thermalfoundation:fluid_redstone" then
+    return false
   elseif name == nil then
     return false
   else
