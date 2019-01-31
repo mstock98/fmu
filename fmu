@@ -379,6 +379,8 @@ function isOre(name, metadata, direction)
     return false
   elseif name == "chisel:marble2" then
     return false
+  elseif name == "chisel:limestone2" then
+    return false
   elseif name == nil then
     return false
   else
