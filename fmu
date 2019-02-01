@@ -547,11 +547,19 @@ function autoMine()
   cPrint(1,1,"Mineshaft length:")
   term.setCursorPos(19,1)
   local leftToMine = tonumber(read())
+  local totalDistance = leftToMine
   cPrint(1,1,"Torch every:",1)
   term.setCursorPos(14,1)
   local torchDist = tonumber(read())
+  term.clear()
+  
+  turtle.digDown()
+  turtle.select(2)
+  turtle.placeDown()
+  turtle.select(1)
   
   while leftToMine > 0 do
+    cPrint(1,1,"Distance to mine: " .. leftToMine, 1)
     turtle.dig()
     sMove("forward")
     turtle.digUp()
@@ -574,6 +582,17 @@ function autoMine()
       turtle.turnLeft()
     end
     leftToMine = leftToMine - 1
+  end
+  
+  cPrint(1, 1, "Heading back...", 1)
+  sMove("back", 0)
+  
+  leftToMine = totalDistance
+  local success, name = turtle.inspectDown()
+  while (name ~= "minecraft:chest" and leftToMine ~= 0) do
+	sMove("forward")
+	success, name = turtle.inspectDown()
+	leftToMine = leftToMine - 1
   end
 end
 
