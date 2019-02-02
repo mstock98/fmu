@@ -383,6 +383,10 @@ function isOre(name, metadata, direction)
     return false
   elseif name == "minecraft:bedrock" then
     return false
+  elseif name == "minecraft:chest" then
+    return false
+  elseif name == "computercraft:turtle" then
+    return false
   elseif name == nil then
     return false
   else
